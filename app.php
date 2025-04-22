@@ -77,40 +77,42 @@ function interval(int $timeout, Closure $callback): void
     timeout($timeout, $task);
 }
 
-function fetch(string $url, Closure $onSuccess, ?Closure $onError = null): void
+function fetch(string $url): Promise
 {
-    Loop::enqueue(function () use ($url, $onSuccess, $onError) {
-        $segments = parse_url($url);
+    return new Promise(function (Closure $resolve, Closure $reject) use ($url) {
+        Loop::enqueue(function () use ($url, $resolve, $reject) {
+            $segments = parse_url($url);
 
-        $stream = fsockopen($segments['host'], $segments['port'] ?? 80, $errorCode, $errorMessage, 3);
+            $stream = fsockopen($segments['host'], $segments['port'] ?? 80, $errorCode, $errorMessage, 3);
 
-        if (!$stream) {
-            $onError(new RuntimeException("$errorMessage ($errorCode)"));
-        } else {
-            stream_set_blocking($stream, false);
+            if (!$stream) {
+                $reject(new RuntimeException("$errorMessage ($errorCode)"));
+            } else {
+                stream_set_blocking($stream, false);
 
-            $uri = ($segments['path'] ?? '/') . (!empty($segments['query']) ? '?' . $segments['query'] : '');
-            $request = "GET $uri HTTP/1.1\r\n";
-            $request .= "Host: {$segments['host']}\r\n";
-            $request .= "Connection: Close\r\n\r\n";
+                $uri = ($segments['path'] ?? '/') . (!empty($segments['query']) ? '?' . $segments['query'] : '');
+                $request = "GET $uri HTTP/1.1\r\n";
+                $request .= "Host: {$segments['host']}\r\n";
+                $request .= "Connection: Close\r\n\r\n";
 
-            fwrite($stream, $request);
+                fwrite($stream, $request);
 
-            $buffer = '';
+                $buffer = '';
 
-            $task = function () use ($stream, &$buffer, $onSuccess, &$task) {
-                if (!feof($stream)) {
-                    $buffer .= fgets($stream, 128);
-                    Loop::enqueue($task);
-                } else {
-                    fclose($stream);
-                    [, $body] = explode("\r\n\r\n", $buffer);
-                    $onSuccess($body);
-                }
-            };
+                $task = function () use ($stream, &$buffer, $resolve, &$task) {
+                    if (!feof($stream)) {
+                        $buffer .= fgets($stream, 128);
+                        Loop::enqueue($task);
+                    } else {
+                        fclose($stream);
+                        [, $body] = explode("\r\n\r\n", $buffer);
+                        $resolve($body);
+                    }
+                };
 
-            Loop::enqueue($task);
-        }
+                Loop::enqueue($task);
+            }
+        });
     });
 }
 
@@ -178,9 +180,7 @@ Loop::enqueue(function () {
 
     echo 'Fetch' . PHP_EOL;
 
-    $promise = new Promise(function (Closure $resolve, Closure $reject) {
-        fetch('http://weather', $resolve(...), $reject(...));
-    });
+    $promise = fetch('http://weather');
 
     echo 'Wait result' . PHP_EOL;
 
