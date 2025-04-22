@@ -4,29 +4,33 @@ declare(strict_types=1);
 
 namespace demo;
 
-$code1 = function () {
-    echo 1 . PHP_EOL;
+use Closure;
+
+$task1 = function () {
+    echo '1.1' . PHP_EOL;
+
+    return function () {
+        echo '1.2' . PHP_EOL;
+    };
 };
 
-$code2 = function () {
-    echo 2 . PHP_EOL;
-};
+$task2 = function () {
+    echo '2.1' . PHP_EOL;
 
-$code3 = function () {
-    echo 3 . PHP_EOL;
-};
-
-$code4 = function () {
-    echo 4 . PHP_EOL;
+    return function () {
+        echo '2.2' . PHP_EOL;
+    };
 };
 
 $tasks = [
-    $code1,
-    $code2,
-    $code3,
-    $code4,
+    $task1,
+    $task2,
 ];
 
 foreach ($tasks as $task) {
-    $task();
+    $result = $task();
+
+    if ($result instanceof Closure) {
+        $result();
+    }
 }
