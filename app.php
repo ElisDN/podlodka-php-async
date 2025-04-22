@@ -77,7 +77,7 @@ function interval(int $timeout, Closure $callback): void
     timeout($timeout, $task);
 }
 
-function fetch(string $url): Promise
+function fetch(string $url, ?Closure $onSuccess = null, ?Closure $onError = null): Promise
 {
     return new Promise(function (Closure $resolve, Closure $reject) use ($url) {
         Loop::enqueue(function () use ($url, $resolve, $reject) {
@@ -113,18 +113,23 @@ function fetch(string $url): Promise
                 Loop::enqueue($task);
             }
         });
-    });
+    }, $onSuccess, $onError);
 }
 
 final class Promise
 {
+    private ?Closure $onSuccess;
+    private ?Closure $onError;
     private bool $resolved = false;
     private bool $success = false;
     private mixed $value = null;
     private ?Exception $error = null;
 
-    public function __construct(Closure $task)
+    public function __construct(Closure $task, ?Closure $onSuccess = null, ?Closure $onError = null)
     {
+        $this->onSuccess = $onSuccess;
+        $this->onError = $onError;
+
         try {
             $task($this->resolve(...), $this->reject(...));
         } catch (Exception $exception) {
@@ -137,6 +142,10 @@ final class Promise
         $this->resolved = true;
         $this->success = true;
         $this->value = $value;
+
+        if ($this->onSuccess !== null) {
+            ($this->onSuccess)($this->value);
+        }
     }
 
     private function reject(Exception $error): void
@@ -144,6 +153,10 @@ final class Promise
         $this->resolved = true;
         $this->success = false;
         $this->error = $error;
+
+        if ($this->onError !== null) {
+            ($this->onError)($this->error);
+        }
     }
 
     public function isResolved(): bool
@@ -189,6 +202,14 @@ Loop::enqueue(function () {
 
     interval(1, function () {
         echo date('Y-m-d H:i:s') . PHP_EOL;
+    });
+
+    echo 'Fetch Callbacks' . PHP_EOL;
+
+    fetch('http://weather', function (string $body) {
+        echo 'Weather: Callback Given ' . $body . PHP_EOL;
+    }, function (Exception $error) {
+        echo 'Weather: Callback Error ' . $error->getMessage() . PHP_EOL;
     });
 
     echo 'Fetch Await' . PHP_EOL;
