@@ -121,18 +121,23 @@ final class Promise
     private mixed $value = null;
     private ?Exception $error = null;
 
-    public function resolve(mixed $value): void
+    public function __construct(Closure $task)
+    {
+        $task($this->resolve(...), $this->reject(...));
+    }
+
+    private function resolve(mixed $value): void
     {
         $this->resolved = true;
         $this->success = true;
         $this->value = $value;
     }
 
-    public function reject(mixed $value): void
+    private function reject(Exception $error): void
     {
         $this->resolved = true;
         $this->success = false;
-        $this->value = $value;
+        $this->error = $error;
     }
 
     public function isResolved(): bool
@@ -150,7 +155,7 @@ final class Promise
         return $this->value;
     }
 
-    public function getError(): ?Exception
+    public function getError(): Exception
     {
         return $this->error;
     }
@@ -167,25 +172,26 @@ Loop::enqueue(function () {
         echo date('Y-m-d H:i:s') . PHP_EOL;
     });
 
-    $promise = new Promise();
+    echo 'Fetch' . PHP_EOL;
 
-    fetch('http://weather',
-        function (string $body) use ($promise) {
-            $promise->resolve($body);
-        },
-        function (Exception $exception) use ($promise) {
-            $promise->reject($exception);
-        }
-    );
+    $promise = new Promise(function (Closure $resolve, Closure $reject) {
+        fetch('http://weather', $resolve(...), $reject(...));
+    });
+
+    echo 'Wait result' . PHP_EOL;
 
     while (!$promise->isResolved()) {
         Loop::doNext();
     }
 
+    echo 'Handle result' . PHP_EOL;
+
     if ($promise->isSuccess()) {
-        echo 'Weather: Given ' . $promise->getValue() . PHP_EOL;
+        $body = $promise->getValue();
+        echo 'Weather: Given ' . $body . PHP_EOL;
     } else {
-        echo 'Weather: Error ' . $promise->getError()->getMessage() . PHP_EOL;
+        $error = $promise->getError();
+        echo 'Weather: Error ' . $error->getMessage() . PHP_EOL;
     }
 
     echo 'End' . PHP_EOL;
