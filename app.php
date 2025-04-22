@@ -50,17 +50,29 @@ function timeout(int $timeout, Closure $callback): void
     Loop::enqueue($task);
 }
 
+function interval(int $timeout, Closure $callback): void
+{
+    $task = function () use ($timeout, $callback, &$task) {
+        $callback();
+        timeout($timeout, $task);
+    };
+
+    timeout($timeout, $task);
+}
+
 Loop::enqueue(function () {
     echo 'Begin' . PHP_EOL;
-
-    echo date('Y-m-d H:i:s') . PHP_EOL;
 
     timeout(5, function () {
         echo 'Hello' . PHP_EOL;
     });
 
-    timeout(2, function () {
+    interval(3, function () {
         echo 'World' . PHP_EOL;
+    });
+
+    interval(1, function () {
+        echo date('Y-m-d H:i:s') . PHP_EOL;
     });
 
     echo 'End' . PHP_EOL;
