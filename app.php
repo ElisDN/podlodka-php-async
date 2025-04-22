@@ -118,14 +118,16 @@ Loop::enqueue(function () {
         echo date('Y-m-d H:i:s') . PHP_EOL;
     });
 
-    fetch('http://weather',
-        function (string $body) {
-            echo 'Weather: Given ' . $body . PHP_EOL;
-        },
-        function (Exception $error) {
-            echo 'Weather: Error ' . $error->getMessage() . PHP_EOL;
-        }
-    );
+    for ($day = 1; $day <= 10; $day++) {
+        fetch('http://weather/?day=' . $day,
+            function (string $body) use ($day) {
+                echo 'Weather ' . $day . ': Given '. $body . PHP_EOL;
+            },
+            function (Exception $error) use ($day) {
+                echo 'Weather ' . $day . ': Error ' . $error->getMessage() . PHP_EOL;
+            }
+        );
+    }
 
     interval(1, function () {
         echo date('Y-m-d H:i:s') . PHP_EOL;
