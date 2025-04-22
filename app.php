@@ -11,6 +11,10 @@ $task1 = function () {
 
     return function () {
         echo '1.2' . PHP_EOL;
+
+        return function () {
+            echo '1.3' . PHP_EOL;
+        };
     };
 };
 
@@ -27,10 +31,10 @@ $tasks = [
     $task2,
 ];
 
-foreach ($tasks as $task) {
+while ($task = array_shift($tasks)) {
     $result = $task();
 
     if ($result instanceof Closure) {
-        $result();
+        $tasks[] = $result;
     }
 }
