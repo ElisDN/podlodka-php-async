@@ -23,7 +23,14 @@ final class Loop
     {
         self::$active = true;
 
-        while (self::$active && $task = array_shift(self::$tasks)) {
+        while (self::$active && count(self::$tasks) > 0) {
+            self::doNext();
+        }
+    }
+
+    public static function doNext(): void
+    {
+        if ($task = array_shift(self::$tasks)) {
             $task();
             self::interruptIfNeedle();
         }
@@ -118,20 +125,33 @@ Loop::enqueue(function () {
         echo date('Y-m-d H:i:s') . PHP_EOL;
     });
 
-    for ($day = 1; $day <= 10; $day++) {
-        fetch('http://weather/?day=' . $day,
-            function (string $body) use ($day) {
-                echo 'Weather ' . $day . ': Given '. $body . PHP_EOL;
-            },
-            function (Exception $error) use ($day) {
-                echo 'Weather ' . $day . ': Error ' . $error->getMessage() . PHP_EOL;
-            }
-        );
+    $resolved = false;
+    $success = false;
+    $value = null;
+    $error = null;
+
+    fetch('http://weather',
+        function (string $body) use (&$resolved, &$success, &$value) {
+            $resolved = true;
+            $success = true;
+            $value = $body;
+        },
+        function (Exception $exception) use (&$resolved, &$success, &$error) {
+            $resolved = true;
+            $success = false;
+            $error = $exception;
+        }
+    );
+
+    while (!$resolved) {
+        Loop::doNext();
     }
 
-    interval(1, function () {
-        echo date('Y-m-d H:i:s') . PHP_EOL;
-    });
+    if ($success) {
+        echo 'Weather: Given ' . $value . PHP_EOL;
+    } else {
+        echo 'Weather: Error ' . $error->getMessage() . PHP_EOL;
+    }
 
     echo 'End' . PHP_EOL;
 });
