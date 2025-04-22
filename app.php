@@ -246,6 +246,27 @@ Loop::enqueue(function () {
         echo 'Weather: Await Error ' . $exception->getMessage() . PHP_EOL;
     }
 
+    echo 'Fetch Await All' . PHP_EOL;
+
+    try {
+         $promises = [
+            fetch('http://weather/?day=1'),
+            fetch('http://weather/?day=2'),
+            fetch('http://weather/?day=3'),
+        ];
+
+        [$body1, $body2, $body3] = array_map(
+            fn (Promise $promise) => await($promise),
+            $promises
+        );
+
+        echo 'Weather: Await All Given 1 ' . $body1 . PHP_EOL;
+        echo 'Weather: Await All Given 2 ' . $body2 . PHP_EOL;
+        echo 'Weather: Await All Given 3 ' . $body3 . PHP_EOL;
+    } catch (Exception $exception) {
+        echo 'Weather: Await Error ' . $exception->getMessage() . PHP_EOL;
+    }
+
     echo 'End' . PHP_EOL;
 });
 
