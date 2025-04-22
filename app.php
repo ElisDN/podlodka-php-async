@@ -20,7 +20,13 @@ $code4 = function () {
     echo 4 . PHP_EOL;
 };
 
-$code1();
-$code2();
-$code3();
-$code4();
+$tasks = [
+    $code1,
+    $code2,
+    $code3,
+    $code4,
+];
+
+foreach ($tasks as $task) {
+    $task();
+}
