@@ -114,6 +114,48 @@ function fetch(string $url, Closure $onSuccess, ?Closure $onError = null): void
     });
 }
 
+final class Promise
+{
+    private bool $resolved = false;
+    private bool $success = false;
+    private mixed $value = null;
+    private ?Exception $error = null;
+
+    public function resolve(mixed $value): void
+    {
+        $this->resolved = true;
+        $this->success = true;
+        $this->value = $value;
+    }
+
+    public function reject(Exception $error): void
+    {
+        $this->resolved = true;
+        $this->success = false;
+        $this->error = $error;
+    }
+
+    public function isResolved(): bool
+    {
+        return $this->resolved;
+    }
+
+    public function isSuccess(): bool
+    {
+        return $this->success;
+    }
+
+    public function getValue(): mixed
+    {
+        return $this->value;
+    }
+
+    public function getError(): ?Exception
+    {
+        return $this->error;
+    }
+}
+
 Loop::enqueue(function () {
     echo 'Begin' . PHP_EOL;
 
@@ -125,32 +167,25 @@ Loop::enqueue(function () {
         echo date('Y-m-d H:i:s') . PHP_EOL;
     });
 
-    $resolved = false;
-    $success = false;
-    $value = null;
-    $error = null;
+    $promise = new Promise();
 
     fetch('http://weather',
-        function (string $body) use (&$resolved, &$success, &$value) {
-            $resolved = true;
-            $success = true;
-            $value = $body;
+        function (string $body) use ($promise) {
+            $promise->resolve($body);
         },
-        function (Exception $exception) use (&$resolved, &$success, &$error) {
-            $resolved = true;
-            $success = false;
-            $error = $exception;
+        function (Exception $exception) use ($promise) {
+            $promise->reject($exception);
         }
     );
 
-    while (!$resolved) {
+    while (!$promise->isResolved()) {
         Loop::doNext();
     }
 
-    if ($success) {
-        echo 'Weather: Given ' . $value . PHP_EOL;
+    if ($promise->isSuccess()) {
+        echo 'Weather: Given ' . $promise->getValue() . PHP_EOL;
     } else {
-        echo 'Weather: Error ' . $error->getMessage() . PHP_EOL;
+        echo 'Weather: Error ' . $promise->getError()->getMessage() . PHP_EOL;
     }
 
     echo 'End' . PHP_EOL;
