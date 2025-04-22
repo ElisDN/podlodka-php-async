@@ -123,7 +123,11 @@ final class Promise
 
     public function __construct(Closure $task)
     {
-        $task($this->resolve(...), $this->reject(...));
+        try {
+            $task($this->resolve(...), $this->reject(...));
+        } catch (Exception $exception) {
+            $this->reject($exception);
+        }
     }
 
     private function resolve(mixed $value): void
