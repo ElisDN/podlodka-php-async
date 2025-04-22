@@ -6,37 +6,33 @@ namespace demo;
 
 use Closure;
 
-$program = function () {
+$tasks = [];
+
+$program = function () use (&$tasks) {
     echo '1.1' . PHP_EOL;
 
-    $result = [];
-
-    $result[] = function () {
+    $tasks[] = function () use (&$tasks) {
         echo '2.1' . PHP_EOL;
 
-        return [function () {
+        $tasks[] = function () {
             echo '2.2' . PHP_EOL;
-        }];
+        };
     };
 
     echo '1.2' . PHP_EOL;
 
-    $result[] = function () {
+    $tasks[] = function () use (&$tasks) {
         echo '3.1' . PHP_EOL;
 
-        return [function () {
+        $tasks[] = function ()  {
             echo '3.2' . PHP_EOL;
-        }];
+        };
     };
 
     echo '1.3' . PHP_EOL;
-
-    return $result;
 };
 
-$tasks = [
-    $program,
-];
+$tasks[] = $program;
 
 while ($task = array_shift($tasks)) {
     $results = $task();
