@@ -1,0 +1,11 @@
+services:
+    php:
+        build:
+            context: ./
+        volumes:
+            - ./:/app:ro
+
+    weather:
+        image: php:8.4-apache
+        volumes:
+            - ./weather:/var/www/html:ro
