@@ -8,6 +8,7 @@ use Closure;
 
 final class Loop
 {
+    private static int $tasksCounter = 0;
     private static array $tasks = [];
 
     public static function enqueue(Closure $task): void
@@ -19,6 +20,15 @@ final class Loop
     {
         while ($task = array_shift(self::$tasks)) {
             $task();
+            self::interruptIfNeedle();
+        }
+    }
+
+    private static function interruptIfNeedle(): void
+    {
+        if (++self::$tasksCounter > 10) {
+            self::$tasksCounter = 0;
+            usleep(0);
         }
     }
 }
