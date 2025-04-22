@@ -8,6 +8,7 @@ use Closure;
 
 final class Loop
 {
+    private static bool $active = false;
     private static int $tasksCounter = 0;
     private static array $tasks = [];
 
@@ -18,10 +19,17 @@ final class Loop
 
     public static function run(): void
     {
-        while ($task = array_shift(self::$tasks)) {
+        self::$active = true;
+
+        while (self::$active && $task = array_shift(self::$tasks)) {
             $task();
             self::interruptIfNeedle();
         }
+    }
+
+    public static function stop(): void
+    {
+        self::$active = false;
     }
 
     private static function interruptIfNeedle(): void
@@ -77,5 +85,15 @@ Loop::enqueue(function () {
 
     echo 'End' . PHP_EOL;
 });
+
+pcntl_async_signals(true);
+
+$signalHandler = function () {
+    Loop::stop();
+};
+
+pcntl_signal(SIGINT, $signalHandler);
+pcntl_signal(SIGTERM, $signalHandler);
+pcntl_signal(SIGHUP,  $signalHandler);
 
 Loop::run();
