@@ -167,6 +167,19 @@ final class Promise
     }
 }
 
+function await(Promise $promise): mixed
+{
+    while (!$promise->isResolved()) {
+        Loop::doNext();
+    }
+
+    if ($promise->isSuccess()) {
+        return $promise->getValue();
+    }
+
+    throw $promise->getError();
+}
+
 Loop::enqueue(function () {
     echo 'Begin' . PHP_EOL;
 
@@ -178,24 +191,13 @@ Loop::enqueue(function () {
         echo date('Y-m-d H:i:s') . PHP_EOL;
     });
 
-    echo 'Fetch' . PHP_EOL;
+    echo 'Fetch Await' . PHP_EOL;
 
-    $promise = fetch('http://weather');
-
-    echo 'Wait result' . PHP_EOL;
-
-    while (!$promise->isResolved()) {
-        Loop::doNext();
-    }
-
-    echo 'Handle result' . PHP_EOL;
-
-    if ($promise->isSuccess()) {
-        $body = $promise->getValue();
-        echo 'Weather: Given ' . $body . PHP_EOL;
-    } else {
-        $error = $promise->getError();
-        echo 'Weather: Error ' . $error->getMessage() . PHP_EOL;
+    try {
+        $body = await(fetch('http://weather'));
+        echo 'Weather: Await Given ' . $body . PHP_EOL;
+    } catch (Exception $exception) {
+        echo 'Weather: Await Error ' . $exception->getMessage() . PHP_EOL;
     }
 
     echo 'End' . PHP_EOL;
