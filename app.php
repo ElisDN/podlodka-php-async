@@ -23,16 +23,9 @@ final class Loop
     }
 }
 
-Loop::enqueue(function () {
-    echo 'Begin' . PHP_EOL;
-
-    echo date('Y-m-d H:i:s') . PHP_EOL;
-
+function timeout(int $timeout, Closure $callback): void
+{
     $start = time();
-    $timeout = 3;
-    $callback = function () {
-        echo date('Y-m-d H:i:s') . PHP_EOL;
-    };
 
     $task = function () use ($start, $timeout, $callback, &$task) {
         $now = time();
@@ -45,6 +38,20 @@ Loop::enqueue(function () {
     };
 
     Loop::enqueue($task);
+}
+
+Loop::enqueue(function () {
+    echo 'Begin' . PHP_EOL;
+
+    echo date('Y-m-d H:i:s') . PHP_EOL;
+
+    timeout(5, function () {
+        echo 'Hello' . PHP_EOL;
+    });
+
+    timeout(2, function () {
+        echo 'World' . PHP_EOL;
+    });
 
     echo 'End' . PHP_EOL;
 });
