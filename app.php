@@ -30,12 +30,15 @@ Loop::enqueue(function () {
 
     $start = time();
     $timeout = 3;
+    $callback = function () {
+        echo date('Y-m-d H:i:s') . PHP_EOL;
+    };
 
-    $task = function () use ($start, $timeout, &$task) {
+    $task = function () use ($start, $timeout, $callback, &$task) {
         $now = time();
 
         if ($now >= $start + $timeout) {
-            echo date('Y-m-d H:i:s') . PHP_EOL;
+            $callback();
         } else {
             Loop::enqueue($task);
         }
