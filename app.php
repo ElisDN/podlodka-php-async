@@ -6,35 +6,46 @@ namespace demo;
 
 use Closure;
 
-$task1 = function () {
+$program = function () {
     echo '1.1' . PHP_EOL;
 
-    return function () {
-        echo '1.2' . PHP_EOL;
+    $result = [];
 
-        return function () {
-            echo '1.3' . PHP_EOL;
-        };
+    $result[] = function () {
+        echo '2.1' . PHP_EOL;
+
+        return [function () {
+            echo '2.2' . PHP_EOL;
+        }];
     };
-};
 
-$task2 = function () {
-    echo '2.1' . PHP_EOL;
+    echo '1.2' . PHP_EOL;
 
-    return function () {
-        echo '2.2' . PHP_EOL;
+    $result[] = function () {
+        echo '3.1' . PHP_EOL;
+
+        return [function () {
+            echo '3.2' . PHP_EOL;
+        }];
     };
+
+    echo '1.3' . PHP_EOL;
+
+    return $result;
 };
 
 $tasks = [
-    $task1,
-    $task2,
+    $program,
 ];
 
 while ($task = array_shift($tasks)) {
-    $result = $task();
+    $results = $task();
 
-    if ($result instanceof Closure) {
-        $tasks[] = $result;
+    if (is_array($results)) {
+        foreach ($results as $result) {
+            if ($result instanceof Closure) {
+                $tasks[] = $result;
+            }
+        }
     }
 }
