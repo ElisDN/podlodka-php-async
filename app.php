@@ -124,6 +124,7 @@ final class Promise
     private bool $success = false;
     private mixed $value = null;
     private ?Exception $error = null;
+    private array $children = [];
 
     public function __construct(Closure $task, ?Closure $onSuccess = null, ?Closure $onError = null)
     {
@@ -135,6 +136,31 @@ final class Promise
         } catch (Exception $exception) {
             $this->reject($exception);
         }
+    }
+
+    public function then(Closure $onSuccess, ?Closure $onError = null): self
+    {
+        return $this->addChild(new self(fn () => null, $onSuccess, $onError));
+    }
+
+    public function catch(Closure $onError): self
+    {
+        return $this->addChild(new self(fn () => null, null, $onError));
+    }
+
+    private function addChild(self $child): self
+    {
+        $this->children[] = $child;
+
+        if ($this->isResolved() && $this->isSuccess()) {
+            $child->resolve($this->value);
+        }
+
+        if ($this->isResolved() && !$this->isSuccess()) {
+            $child->reject($this->error);
+        }
+
+        return $child;
     }
 
     private function resolve(mixed $value): void
@@ -151,6 +177,10 @@ final class Promise
         $this->resolved = true;
         $this->success = true;
         $this->value = $value;
+
+        foreach ($this->children as $child) {
+            $child->resolve($this->value);
+        }
     }
 
     private function reject(Exception $error): void
@@ -162,6 +192,10 @@ final class Promise
                 $this->resolved = true;
                 $this->success = true;
                 $this->value = $value;
+    
+                foreach ($this->children as $child) {
+                    $child->resolve($this->value);
+                }
 
                 return;
             } catch (Exception $exception) {
@@ -172,6 +206,10 @@ final class Promise
         $this->resolved = true;
         $this->success = false;
         $this->error = $error;
+
+        foreach ($this->children as $child) {
+            $child->reject($this->error);
+        }
     }
 
     public function isResolved(): bool
@@ -248,6 +286,28 @@ Loop::enqueue(function () {
     }));
 
     echo 'Weather: Await Callback Process ' . print_r($data, true) . PHP_EOL;
+
+    echo 'Fetch Then-Catch' . PHP_EOL;
+
+    fetch('http://weather')
+        ->then(function (string $body) {
+            echo 'Weather: Then Given ' . $body . PHP_EOL;
+            return json_decode($body, true, JSON_THROW_ON_ERROR);
+        })
+        ->then(function (array $data) {
+            echo 'Weather: Then Process ' . print_r($data, true) . PHP_EOL;
+        })
+        ->catch(function (Exception $error) {
+            echo 'Weather: Catch Error ' . $error->getMessage() . PHP_EOL;
+        });
+
+    echo 'Fetch Await Then-Catch' . PHP_EOL;
+
+    $data = await(fetch('http://weather')
+        ->then(fn (string $body) => json_decode($body, true, JSON_THROW_ON_ERROR))
+        ->catch(fn ()  => []));
+
+    echo 'Weather: Await Then-Catch Process ' . print_r($data, true) . PHP_EOL;
 
     echo 'Fetch Await' . PHP_EOL;
 
