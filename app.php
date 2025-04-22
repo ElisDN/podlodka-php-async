@@ -139,24 +139,39 @@ final class Promise
 
     private function resolve(mixed $value): void
     {
+        if ($this->onSuccess !== null) {
+            try {
+                $value = ($this->onSuccess)($value);
+            } catch (Exception $exception) {
+                $this->reject($exception);
+                return;
+            }
+        }
+
         $this->resolved = true;
         $this->success = true;
         $this->value = $value;
-
-        if ($this->onSuccess !== null) {
-            ($this->onSuccess)($this->value);
-        }
     }
 
     private function reject(Exception $error): void
     {
+        if ($this->onError !== null) {
+            try {
+                $value = ($this->onError)($error);
+
+                $this->resolved = true;
+                $this->success = true;
+                $this->value = $value;
+
+                return;
+            } catch (Exception $exception) {
+                $error = $exception;
+            }
+        }
+
         $this->resolved = true;
         $this->success = false;
         $this->error = $error;
-
-        if ($this->onError !== null) {
-            ($this->onError)($this->error);
-        }
     }
 
     public function isResolved(): bool
@@ -211,6 +226,16 @@ Loop::enqueue(function () {
     }, function (Exception $error) {
         echo 'Weather: Callback Error ' . $error->getMessage() . PHP_EOL;
     });
+
+    echo 'Fetch Await Callbacks' . PHP_EOL;
+
+    $data = await(fetch('http://weather', function (string $body) {
+        return json_decode($body, true, JSON_THROW_ON_ERROR);
+    }, function () {
+        return [];
+    }));
+
+    echo 'Weather: Await Callback Process ' . print_r($data, true) . PHP_EOL;
 
     echo 'Fetch Await' . PHP_EOL;
 
