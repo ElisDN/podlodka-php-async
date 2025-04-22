@@ -208,6 +208,18 @@ function await(Promise $promise): mixed
     throw $promise->getError();
 }
 
+function all(array $promises): Promise
+{
+    return new Promise(function (Closure $resolve, Closure $reject) use ($promises) {
+        try {
+            $values = array_map(fn (Promise $promise) => await($promise), $promises);
+            $resolve($values);
+        } catch (Exception $error) {
+            $reject($error);
+        }
+    });
+}
+
 Loop::enqueue(function () {
     echo 'Begin' . PHP_EOL;
 
@@ -249,22 +261,17 @@ Loop::enqueue(function () {
     echo 'Fetch Await All' . PHP_EOL;
 
     try {
-         $promises = [
+        [$body1, $body2, $body3] = await(all([
             fetch('http://weather/?day=1'),
             fetch('http://weather/?day=2'),
             fetch('http://weather/?day=3'),
-        ];
-
-        [$body1, $body2, $body3] = array_map(
-            fn (Promise $promise) => await($promise),
-            $promises
-        );
+        ]));
 
         echo 'Weather: Await All Given 1 ' . $body1 . PHP_EOL;
         echo 'Weather: Await All Given 2 ' . $body2 . PHP_EOL;
         echo 'Weather: Await All Given 3 ' . $body3 . PHP_EOL;
     } catch (Exception $exception) {
-        echo 'Weather: Await Error ' . $exception->getMessage() . PHP_EOL;
+        echo 'Weather: Await All Error ' . $exception->getMessage() . PHP_EOL;
     }
 
     echo 'End' . PHP_EOL;
