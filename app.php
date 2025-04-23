@@ -165,6 +165,10 @@ final class Promise
 
     private function resolve(mixed $value): void
     {
+        if ($this->isResolved()) {
+            return;
+        }
+
         if ($this->onSuccess !== null) {
             try {
                 $value = ($this->onSuccess)($value);
@@ -185,6 +189,10 @@ final class Promise
 
     private function reject(Exception $error): void
     {
+        if ($this->isResolved()) {
+            return;
+        }
+
         if ($this->onError !== null) {
             try {
                 $value = ($this->onError)($error);
